@@ -3,170 +3,503 @@ import anthropic
 import time
 
 # ============================================================
-# 페이지 기본 설정
+# 페이지 설정
 # ============================================================
 st.set_page_config(
-    page_title="🤖 Claude AI 질문 앱",
-    page_icon="🤖",
+    page_title="Claude AI Studio",
+    page_icon="✦",
     layout="centered",
 )
 
 # ============================================================
-# 커스텀 CSS - 깔끔한 UI
+# 프리미엄 CSS 디자인
 # ============================================================
 st.markdown("""
 <style>
-    /* 전체 배경 */
-    .stApp {
-        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-    }
+/* ── Google Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-    /* 메인 헤더 */
-    .main-header {
-        text-align: center;
-        padding: 1.5rem 0;
-        margin-bottom: 1rem;
-    }
-    .main-header h1 {
-        color: #ffffff;
-        font-size: 2.4rem;
-        font-weight: 800;
-        margin-bottom: 0.3rem;
-    }
-    .main-header p {
-        color: #a0a0c0;
-        font-size: 1.05rem;
-    }
+/* ── 전역 리셋 ── */
+* { font-family: 'Inter', sans-serif; }
+code, .stCode { font-family: 'JetBrains Mono', monospace !important; }
 
-    /* 사이드바 */
-    section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #1a1a3e, #16163a);
-    }
-    section[data-testid="stSidebar"] .stMarkdown h2,
-    section[data-testid="stSidebar"] .stMarkdown h3 {
-        color: #c0c0ff;
-    }
-    section[data-testid="stSidebar"] .stMarkdown p,
-    section[data-testid="stSidebar"] .stMarkdown li {
-        color: #b0b0d0;
-        font-size: 0.9rem;
-    }
+/* ── 배경 애니메이션 ── */
+.stApp {
+    background: #050510;
+    background-image:
+        radial-gradient(ellipse 80% 60% at 20% 0%, rgba(88, 28, 255, 0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 100%, rgba(0, 200, 255, 0.10) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 60%);
+}
 
-    /* 사용량 카드 */
-    .usage-card {
-        background: linear-gradient(135deg, #1e1e50, #2a2a60);
-        border: 1px solid #4a4a8a;
-        border-radius: 12px;
-        padding: 1.2rem;
-        margin: 1rem 0;
-    }
-    .usage-card h4 {
-        color: #8888ff;
-        margin: 0 0 0.8rem 0;
-        font-size: 1rem;
-    }
-    .usage-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.4rem 0;
-        border-bottom: 1px solid #3a3a6a;
-    }
-    .usage-row:last-child {
-        border-bottom: none;
-        padding-top: 0.6rem;
-        margin-top: 0.2rem;
-        border-top: 2px solid #5555aa;
-    }
-    .usage-label {
-        color: #9999cc;
-        font-size: 0.9rem;
-    }
-    .usage-value {
-        color: #ffffff;
-        font-weight: 700;
-        font-size: 0.95rem;
-    }
-    .usage-value.total {
-        color: #ffcc00;
-        font-size: 1.05rem;
-    }
+/* ── 스크롤바 ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #7c3aed, #2563eb);
+    border-radius: 3px;
+}
 
-    /* 비용 카드 */
-    .cost-card {
-        background: linear-gradient(135deg, #1a3a1a, #2a4a2a);
-        border: 1px solid #4a8a4a;
-        border-radius: 12px;
-        padding: 1.2rem;
-        margin: 0.5rem 0 1rem 0;
-    }
-    .cost-card h4 {
-        color: #88ff88;
-        margin: 0 0 0.8rem 0;
-        font-size: 1rem;
-    }
+/* ── 히어로 헤더 ── */
+.hero {
+    text-align: center;
+    padding: 2.5rem 1rem 1.5rem;
+    position: relative;
+}
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(37,99,235,0.2));
+    border: 1px solid rgba(124,58,237,0.3);
+    padding: 0.35rem 1rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    color: #a78bfa;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+}
+.hero h1 {
+    font-size: 2.8rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #ffffff 0%, #a78bfa 50%, #60a5fa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0.5rem 0;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+.hero .subtitle {
+    color: #64648a;
+    font-size: 1rem;
+    font-weight: 400;
+    max-width: 500px;
+    margin: 0.5rem auto 0;
+    line-height: 1.6;
+}
 
-    /* 채팅 메시지 */
-    .stChatMessage {
-        border-radius: 12px;
-        margin-bottom: 0.8rem;
-    }
+/* ── 글래스 카드 ── */
+.glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin: 0.8rem 0;
+    position: relative;
+    overflow: hidden;
+}
+.glass::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+}
 
-    /* 모델 선택 라디오 버튼 */
-    .stRadio > label {
-        color: #c0c0ff !important;
-        font-weight: 600;
-    }
+/* ── 사용량 카드 ── */
+.usage-glass {
+    background: rgba(124, 58, 237, 0.06);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(124, 58, 237, 0.15);
+    border-radius: 16px;
+    padding: 1.4rem;
+    margin: 1rem 0;
+}
+.usage-glass .card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+.usage-glass .card-header .icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #7c3aed, #2563eb);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+}
+.usage-glass .card-header .title {
+    color: #c4b5fd;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
 
-    /* 경고/정보 박스 */
-    .model-info {
-        background: linear-gradient(135deg, #1a1a4a, #252560);
-        border-left: 4px solid #6666ff;
-        border-radius: 8px;
-        padding: 0.8rem 1rem;
-        margin: 0.8rem 0;
-        color: #b0b0e0;
-        font-size: 0.88rem;
-    }
+.metric-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+}
+.metric-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 0.8rem;
+    text-align: center;
+}
+.metric-item .value {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #ffffff;
+    font-family: 'JetBrains Mono', monospace;
+}
+.metric-item .label {
+    font-size: 0.7rem;
+    color: #64648a;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.2rem;
+}
+.metric-item.highlight {
+    background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(37,99,235,0.15));
+    border-color: rgba(124,58,237,0.3);
+}
+.metric-item.highlight .value {
+    background: linear-gradient(135deg, #a78bfa, #60a5fa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
 
-    /* 누적 사용량 배지 */
-    .session-badge {
-        background: linear-gradient(135deg, #3a1a5a, #4a2a6a);
-        border: 1px solid #7a4aaa;
-        border-radius: 10px;
-        padding: 0.6rem 1rem;
-        margin: 0.5rem 0;
-        text-align: center;
-    }
-    .session-badge .number {
-        color: #cc88ff;
-        font-size: 1.3rem;
-        font-weight: 800;
-    }
-    .session-badge .label {
-        color: #9977bb;
-        font-size: 0.8rem;
-    }
+/* ── 비용 카드 ── */
+.cost-glass {
+    background: rgba(16, 185, 129, 0.06);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    border-radius: 16px;
+    padding: 1.4rem;
+    margin: 0.5rem 0 1rem;
+}
+.cost-glass .card-header .icon {
+    background: linear-gradient(135deg, #059669, #0d9488);
+}
+.cost-glass .card-header .title {
+    color: #6ee7b7;
+}
+.cost-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.cost-item:last-child {
+    border-bottom: none;
+    padding-top: 0.7rem;
+    margin-top: 0.3rem;
+    border-top: 1px solid rgba(16,185,129,0.2);
+}
+.cost-item .cost-label {
+    color: #64648a;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+.cost-item .cost-value {
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+}
+.cost-item:last-child .cost-value {
+    color: #6ee7b7;
+    font-size: 1rem;
+}
 
-    /* 버튼 스타일 */
-    .stButton > button {
-        background: linear-gradient(135deg, #4a4a8a, #5a5aaa);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-    }
-    .stButton > button:hover {
-        background: linear-gradient(135deg, #5a5aaa, #6a6acc);
-    }
+/* ── 시간 배지 ── */
+.time-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    padding: 0.25rem 0.7rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    color: #fbbf24;
+    font-weight: 600;
+    margin-bottom: 0.8rem;
+}
+
+/* ── 사이드바 ── */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0a0a1a 0%, #0d0d24 100%) !important;
+    border-right: 1px solid rgba(255,255,255,0.05);
+}
+section[data-testid="stSidebar"] .stMarkdown h1,
+section[data-testid="stSidebar"] .stMarkdown h2,
+section[data-testid="stSidebar"] .stMarkdown h3 {
+    color: #e2e8f0 !important;
+    font-weight: 700;
+}
+section[data-testid="stSidebar"] .stMarkdown p,
+section[data-testid="stSidebar"] .stMarkdown li {
+    color: #94a3b8 !important;
+}
+section[data-testid="stSidebar"] hr {
+    border-color: rgba(255,255,255,0.06) !important;
+}
+
+/* 사이드바 모델 카드 */
+.model-card {
+    background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(37,99,235,0.08));
+    border: 1px solid rgba(124,58,237,0.2);
+    border-radius: 12px;
+    padding: 1rem;
+    margin: 0.6rem 0;
+}
+.model-card .model-name {
+    color: #c4b5fd;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+}
+.model-card .model-desc {
+    color: #64648a;
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+.model-card .model-pricing {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+}
+.model-card .price-tag {
+    background: rgba(255,255,255,0.05);
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+    color: #94a3b8;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* 사이드바 스탯 */
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+}
+.stat-box {
+    flex: 1;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 0.7rem;
+    text-align: center;
+}
+.stat-box .stat-num {
+    font-size: 1.2rem;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    color: #e2e8f0;
+}
+.stat-box .stat-label {
+    font-size: 0.65rem;
+    color: #64648a;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.15rem;
+}
+.stat-box.purple .stat-num {
+    background: linear-gradient(135deg, #a78bfa, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.stat-box.blue .stat-num {
+    background: linear-gradient(135deg, #60a5fa, #38bdf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.stat-box.gold .stat-num {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ── 채팅 메시지 ── */
+.stChatMessage {
+    background: rgba(255,255,255,0.02) !important;
+    border: 1px solid rgba(255,255,255,0.04) !important;
+    border-radius: 16px !important;
+    padding: 1rem !important;
+    margin-bottom: 1rem !important;
+}
+
+/* ── 입력창 ── */
+.stChatInput > div {
+    border: 1px solid rgba(124,58,237,0.3) !important;
+    border-radius: 14px !important;
+    background: rgba(255,255,255,0.03) !important;
+}
+.stChatInput > div:focus-within {
+    border-color: rgba(124,58,237,0.6) !important;
+    box-shadow: 0 0 20px rgba(124,58,237,0.15) !important;
+}
+.stChatInput textarea {
+    color: #e2e8f0 !important;
+}
+
+/* ── 라디오 버튼 ── */
+.stRadio > label {
+    color: #c4b5fd !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+}
+.stRadio > div > label {
+    color: #94a3b8 !important;
+}
+.stRadio > div > label[data-checked="true"] {
+    color: #e2e8f0 !important;
+}
+
+/* ── 텍스트 에리어 ── */
+.stTextArea textarea {
+    background: rgba(255,255,255,0.03) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    border-radius: 10px !important;
+    color: #e2e8f0 !important;
+    font-size: 0.85rem !important;
+}
+.stTextArea textarea:focus {
+    border-color: rgba(124,58,237,0.4) !important;
+    box-shadow: 0 0 15px rgba(124,58,237,0.1) !important;
+}
+.stTextArea label {
+    color: #94a3b8 !important;
+}
+
+/* ── 슬라이더 ── */
+.stSlider label { color: #94a3b8 !important; }
+.stSlider [data-testid="stThumbValue"] { color: #c4b5fd !important; }
+
+/* ── 버튼 ── */
+.stButton > button {
+    background: linear-gradient(135deg, #7c3aed, #2563eb) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+    padding: 0.6rem 1.2rem !important;
+    transition: all 0.3s ease !important;
+    letter-spacing: 0.02em;
+}
+.stButton > button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 8px 25px rgba(124,58,237,0.35) !important;
+}
+.stButton > button:active {
+    transform: translateY(0) !important;
+}
+
+/* ── 에러/경고 박스 ── */
+.stAlert {
+    background: rgba(255,255,255,0.03) !important;
+    border-radius: 12px !important;
+}
+
+/* ── 푸터 ── */
+.app-footer {
+    text-align: center;
+    padding: 2rem 0 1rem;
+    color: #3a3a5a;
+    font-size: 0.75rem;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    margin-top: 2rem;
+}
+.app-footer a {
+    color: #7c3aed;
+    text-decoration: none;
+}
+
+/* ── 안내 카드 (사이드바) ── */
+.guide-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 0.8rem;
+    margin: 0.3rem 0;
+}
+.guide-card .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px; height: 20px;
+    background: linear-gradient(135deg, #7c3aed, #2563eb);
+    border-radius: 50%;
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: white;
+    margin-right: 0.4rem;
+}
+.guide-card .step-text {
+    color: #94a3b8;
+    font-size: 0.8rem;
+}
+
+/* ── 스피너 ── */
+.stSpinner > div {
+    color: #a78bfa !important;
+}
+
+/* ── 빈 채팅 상태 ── */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #3a3a5a;
+}
+.empty-state .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+.empty-state .empty-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #64648a;
+    margin-bottom: 0.5rem;
+}
+.empty-state .empty-desc {
+    font-size: 0.85rem;
+    color: #4a4a6a;
+    max-width: 350px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* ── 모델 뱃지 (채팅) ── */
+.model-badge-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(124,58,237,0.12);
+    border: 1px solid rgba(124,58,237,0.25);
+    border-radius: 6px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.7rem;
+    color: #a78bfa;
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================================
-# API 키 로드 (Streamlit Secrets)
+# API 키 로드
 # ============================================================
 def get_api_key():
-    """Streamlit Secrets에서 API 키를 안전하게 불러옵니다."""
     try:
         return st.secrets["ANTHROPIC_API_KEY"]
     except (KeyError, FileNotFoundError):
@@ -175,76 +508,74 @@ def get_api_key():
 api_key = get_api_key()
 
 # ============================================================
-# 모델 정보 정의
+# 모델 정보
 # ============================================================
 MODELS = {
-    "Claude 4 Sonnet (최신)": {
+    "Claude 4 Sonnet": {
         "id": "claude-sonnet-4-20250514",
-        "description": "빠르고 효율적인 최신 모델. 일상 질문에 추천!",
-        "input_cost_per_1m": 3.00,     # $3 per 1M input tokens
-        "output_cost_per_1m": 15.00,   # $15 per 1M output tokens
+        "description": "최신 모델 · 빠르고 정확한 응답",
+        "input_cost_per_1m": 3.00,
+        "output_cost_per_1m": 15.00,
+        "badge": "⚡ LATEST",
         "emoji": "⚡",
     },
     "Claude 3.5 Sonnet": {
         "id": "claude-3-5-sonnet-20241022",
-        "description": "안정적이고 균형 잡힌 모델. 범용 추천!",
+        "description": "안정적 · 균형 잡힌 범용 모델",
         "input_cost_per_1m": 3.00,
         "output_cost_per_1m": 15.00,
+        "badge": "🎯 STABLE",
         "emoji": "🎯",
     },
 }
 
 # ============================================================
-# 세션 상태 초기화
+# 세션 상태
 # ============================================================
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-if "total_input_tokens" not in st.session_state:
-    st.session_state.total_input_tokens = 0
-
-if "total_output_tokens" not in st.session_state:
-    st.session_state.total_output_tokens = 0
-
-if "total_cost" not in st.session_state:
-    st.session_state.total_cost = 0.0
-
-if "conversation_count" not in st.session_state:
-    st.session_state.conversation_count = 0
+defaults = {
+    "messages": [],
+    "total_input_tokens": 0,
+    "total_output_tokens": 0,
+    "total_cost": 0.0,
+    "conversation_count": 0,
+}
+for k, v in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
 
 # ============================================================
 # 사이드바
 # ============================================================
 with st.sidebar:
-    st.markdown("## ⚙️ 설정")
+    st.markdown("## ✦ Studio Settings")
 
     # 모델 선택
     selected_model_name = st.radio(
-        "🧠 AI 모델 선택",
+        "🧠 Model",
         options=list(MODELS.keys()),
         index=0,
     )
-    model_info = MODELS[selected_model_name]
+    mi = MODELS[selected_model_name]
 
     st.markdown(f"""
-    <div class="model-info">
-        {model_info['emoji']} <strong>{selected_model_name}</strong><br>
-        {model_info['description']}<br><br>
-        💰 입력: ${model_info['input_cost_per_1m']:.2f} / 1M 토큰<br>
-        💰 출력: ${model_info['output_cost_per_1m']:.2f} / 1M 토큰
+    <div class="model-card">
+        <div class="model-name">{mi['emoji']} {selected_model_name}</div>
+        <div class="model-desc">{mi['description']}</div>
+        <div class="model-pricing">
+            <span class="price-tag">IN ${mi['input_cost_per_1m']:.0f}/1M</span>
+            <span class="price-tag">OUT ${mi['output_cost_per_1m']:.0f}/1M</span>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # 시스템 프롬프트 설정
     system_prompt = st.text_area(
-        "📝 시스템 프롬프트 (선택사항)",
+        "📝 System Prompt",
         value="당신은 친절하고 도움이 되는 AI 어시스턴트입니다. 한국어로 답변해주세요.",
         height=100,
     )
 
-    # 최대 토큰 설정
     max_tokens = st.slider(
-        "📏 최대 응답 길이 (토큰)",
+        "📏 Max Tokens",
         min_value=256,
         max_value=8192,
         value=2048,
@@ -252,64 +583,59 @@ with st.sidebar:
     )
 
     st.markdown("---")
-
-    # 누적 사용량 표시
-    st.markdown("### 📊 세션 누적 사용량")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown(f"""
-        <div class="session-badge">
-            <div class="number">{st.session_state.conversation_count}</div>
-            <div class="label">대화 횟수</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col2:
-        st.markdown(f"""
-        <div class="session-badge">
-            <div class="number">{st.session_state.total_input_tokens + st.session_state.total_output_tokens:,}</div>
-            <div class="label">총 토큰</div>
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown("### 📊 Session Stats")
 
     st.markdown(f"""
-    <div class="session-badge">
-        <div class="number" style="color: #ffcc00;">${st.session_state.total_cost:.6f}</div>
-        <div class="label">총 예상 비용</div>
+    <div class="stat-row">
+        <div class="stat-box purple">
+            <div class="stat-num">{st.session_state.conversation_count}</div>
+            <div class="stat-label">대화</div>
+        </div>
+        <div class="stat-box blue">
+            <div class="stat-num">{st.session_state.total_input_tokens + st.session_state.total_output_tokens:,}</div>
+            <div class="stat-label">토큰</div>
+        </div>
+    </div>
+    <div class="stat-row">
+        <div class="stat-box gold">
+            <div class="stat-num">${st.session_state.total_cost:.4f}</div>
+            <div class="stat-label">예상 비용</div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("---")
+    st.markdown("")
 
-    # 대화 초기화 버튼
-    if st.button("🗑️ 대화 기록 초기화", use_container_width=True):
-        st.session_state.messages = []
-        st.session_state.total_input_tokens = 0
-        st.session_state.total_output_tokens = 0
-        st.session_state.total_cost = 0.0
-        st.session_state.conversation_count = 0
+    if st.button("🗑️ 대화 초기화", use_container_width=True):
+        for k, v in defaults.items():
+            st.session_state[k] = v
         st.rerun()
 
     st.markdown("---")
+    st.markdown("### 📖 How to Use")
     st.markdown("""
-    ### 📖 사용법
-    1. 모델을 선택하세요
-    2. 아래 입력창에 질문을 입력하세요
-    3. AI가 답변을 생성합니다
-    4. 토큰 사용량과 비용을 확인하세요
-
-    ### 🔑 API 키 설정
-    Streamlit Cloud의 **Secrets**에
-    `ANTHROPIC_API_KEY`를 등록하세요.
-    """)
+    <div class="guide-card">
+        <span class="step-num">1</span>
+        <span class="step-text">모델을 선택합니다</span>
+    </div>
+    <div class="guide-card">
+        <span class="step-num">2</span>
+        <span class="step-text">하단 입력창에 질문을 작성합니다</span>
+    </div>
+    <div class="guide-card">
+        <span class="step-num">3</span>
+        <span class="step-text">AI 응답과 사용량을 확인합니다</span>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ============================================================
-# 메인 영역 - 헤더
+# 메인 히어로
 # ============================================================
 st.markdown("""
-<div class="main-header">
-    <h1>🤖 Claude AI 질문 앱</h1>
-    <p>당곡고등학교 학습 도우미 — Claude API로 구동됩니다</p>
+<div class="hero">
+    <div class="hero-badge">✦ Powered by Anthropic Claude API</div>
+    <h1>Claude AI Studio</h1>
+    <p class="subtitle">당곡고등학교 학습 도우미 — 질문을 입력하면 AI가 답변해드립니다</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -318,167 +644,186 @@ if not api_key:
     st.error("""
     ⚠️ **API 키가 설정되지 않았습니다!**
 
-    **Streamlit Cloud 배포 시:**
-    1. 앱 대시보드 → Settings → Secrets
-    2. 아래 내용을 입력하세요:
+    **Streamlit Cloud:** 앱 Settings → Secrets에 아래 내용 추가
     ```
-    ANTHROPIC_API_KEY = "sk-ant-api03-여기에_키_입력"
+    ANTHROPIC_API_KEY = "sk-ant-api03-..."
     ```
 
-    **로컬 테스트 시:**
-    `.streamlit/secrets.toml` 파일에 같은 내용을 추가하세요.
+    **로컬 테스트:** `.streamlit/secrets.toml` 파일에 동일하게 추가
     """)
     st.stop()
 
 # ============================================================
-# Claude API 클라이언트 생성
+# Claude 클라이언트
 # ============================================================
 client = anthropic.Anthropic(api_key=api_key)
 
 # ============================================================
-# 이전 대화 메시지 표시
+# 이전 메시지 표시
 # ============================================================
+if not st.session_state.messages:
+    st.markdown("""
+    <div class="empty-state">
+        <div class="empty-icon">✦</div>
+        <div class="empty-title">대화를 시작해보세요</div>
+        <div class="empty-desc">
+            아래 입력창에 궁금한 것을 물어보세요.
+            Claude AI가 친절하게 답변해드립니다.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
 for msg in st.session_state.messages:
-    role = msg["role"]
-    content = msg["content"]
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
-    with st.chat_message(role):
-        st.markdown(content)
-
-        # 해당 메시지에 사용량 정보가 있으면 표시
-        if role == "assistant" and "usage" in msg:
-            usage = msg["usage"]
+        if msg["role"] == "assistant" and "usage" in msg:
+            u = msg["usage"]
             st.markdown(f"""
-            <div class="usage-card">
-                <h4>📊 이 응답의 토큰 사용량</h4>
-                <div class="usage-row">
-                    <span class="usage-label">📥 입력 토큰</span>
-                    <span class="usage-value">{usage['input_tokens']:,}</span>
+            <span class="model-badge-inline">{u.get('model_emoji','')} {u.get('model_name','')}</span>
+            <span class="time-badge">⏱ {u.get('elapsed', 0):.1f}s</span>
+
+            <div class="usage-glass">
+                <div class="card-header">
+                    <div class="icon">📊</div>
+                    <div class="title">Token Usage</div>
                 </div>
-                <div class="usage-row">
-                    <span class="usage-label">📤 출력 토큰</span>
-                    <span class="usage-value">{usage['output_tokens']:,}</span>
-                </div>
-                <div class="usage-row">
-                    <span class="usage-label">📦 합계</span>
-                    <span class="usage-value total">{usage['input_tokens'] + usage['output_tokens']:,}</span>
+                <div class="metric-grid">
+                    <div class="metric-item">
+                        <div class="value">{u['input_tokens']:,}</div>
+                        <div class="label">입력 토큰</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="value">{u['output_tokens']:,}</div>
+                        <div class="label">출력 토큰</div>
+                    </div>
+                    <div class="metric-item highlight" style="grid-column: span 2;">
+                        <div class="value">{u['input_tokens'] + u['output_tokens']:,}</div>
+                        <div class="label">총 사용 토큰</div>
+                    </div>
                 </div>
             </div>
-            <div class="cost-card">
-                <h4>💰 이 응답의 예상 비용</h4>
-                <div class="usage-row">
-                    <span class="usage-label">입력 비용</span>
-                    <span class="usage-value">${usage['input_cost']:.6f}</span>
+
+            <div class="cost-glass">
+                <div class="card-header">
+                    <div class="icon">💰</div>
+                    <div class="title">Estimated Cost</div>
                 </div>
-                <div class="usage-row">
-                    <span class="usage-label">출력 비용</span>
-                    <span class="usage-value">${usage['output_cost']:.6f}</span>
+                <div class="cost-item">
+                    <span class="cost-label">입력 비용</span>
+                    <span class="cost-value">${u['input_cost']:.6f}</span>
                 </div>
-                <div class="usage-row">
-                    <span class="usage-label">합계</span>
-                    <span class="usage-value total">${usage['total_cost']:.6f}</span>
+                <div class="cost-item">
+                    <span class="cost-label">출력 비용</span>
+                    <span class="cost-value">${u['output_cost']:.6f}</span>
+                </div>
+                <div class="cost-item">
+                    <span class="cost-label">합계</span>
+                    <span class="cost-value">${u['total_cost']:.6f}</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
 # ============================================================
-# 사용자 입력 처리
+# 입력 처리
 # ============================================================
-if prompt := st.chat_input("💬 질문을 입력하세요..."):
-    # 사용자 메시지 추가 및 표시
+if prompt := st.chat_input("✦ 질문을 입력하세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # AI 응답 생성
     with st.chat_message("assistant"):
-        with st.spinner(f"🤔 {selected_model_name}이(가) 생각하는 중..."):
+        with st.spinner(f"✦ {selected_model_name} 응답 생성 중..."):
             try:
                 start_time = time.time()
 
-                # API에 보낼 메시지 구성 (role이 user/assistant만)
                 api_messages = [
                     {"role": m["role"], "content": m["content"]}
                     for m in st.session_state.messages
                     if m["role"] in ("user", "assistant")
                 ]
 
-                # Claude API 호출
                 response = client.messages.create(
-                    model=model_info["id"],
+                    model=mi["id"],
                     max_tokens=max_tokens,
                     system=system_prompt,
                     messages=api_messages,
                 )
 
-                end_time = time.time()
-                elapsed = end_time - start_time
+                elapsed = time.time() - start_time
+                text = response.content[0].text
+                inp = response.usage.input_tokens
+                out = response.usage.output_tokens
+                ic = (inp / 1_000_000) * mi["input_cost_per_1m"]
+                oc = (out / 1_000_000) * mi["output_cost_per_1m"]
+                tc = ic + oc
 
-                # 응답 텍스트 추출
-                assistant_text = response.content[0].text
-
-                # 사용량 계산
-                input_tokens = response.usage.input_tokens
-                output_tokens = response.usage.output_tokens
-
-                input_cost = (input_tokens / 1_000_000) * model_info["input_cost_per_1m"]
-                output_cost = (output_tokens / 1_000_000) * model_info["output_cost_per_1m"]
-                total_cost = input_cost + output_cost
-
-                # 세션 누적 업데이트
-                st.session_state.total_input_tokens += input_tokens
-                st.session_state.total_output_tokens += output_tokens
-                st.session_state.total_cost += total_cost
+                st.session_state.total_input_tokens += inp
+                st.session_state.total_output_tokens += out
+                st.session_state.total_cost += tc
                 st.session_state.conversation_count += 1
 
                 # 응답 표시
-                st.markdown(assistant_text)
+                st.markdown(text)
 
-                # 사용량 표시
                 st.markdown(f"""
-                <div class="usage-card">
-                    <h4>📊 이 응답의 토큰 사용량 — ⏱️ {elapsed:.1f}초 소요</h4>
-                    <div class="usage-row">
-                        <span class="usage-label">📥 입력 토큰</span>
-                        <span class="usage-value">{input_tokens:,}</span>
+                <span class="model-badge-inline">{mi['emoji']} {selected_model_name}</span>
+                <span class="time-badge">⏱ {elapsed:.1f}s</span>
+
+                <div class="usage-glass">
+                    <div class="card-header">
+                        <div class="icon">📊</div>
+                        <div class="title">Token Usage</div>
                     </div>
-                    <div class="usage-row">
-                        <span class="usage-label">📤 출력 토큰</span>
-                        <span class="usage-value">{output_tokens:,}</span>
-                    </div>
-                    <div class="usage-row">
-                        <span class="usage-label">📦 합계</span>
-                        <span class="usage-value total">{input_tokens + output_tokens:,}</span>
+                    <div class="metric-grid">
+                        <div class="metric-item">
+                            <div class="value">{inp:,}</div>
+                            <div class="label">입력 토큰</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="value">{out:,}</div>
+                            <div class="label">출력 토큰</div>
+                        </div>
+                        <div class="metric-item highlight" style="grid-column: span 2;">
+                            <div class="value">{inp + out:,}</div>
+                            <div class="label">총 사용 토큰</div>
+                        </div>
                     </div>
                 </div>
-                <div class="cost-card">
-                    <h4>💰 이 응답의 예상 비용</h4>
-                    <div class="usage-row">
-                        <span class="usage-label">입력 비용</span>
-                        <span class="usage-value">${input_cost:.6f}</span>
+
+                <div class="cost-glass">
+                    <div class="card-header">
+                        <div class="icon">💰</div>
+                        <div class="title">Estimated Cost</div>
                     </div>
-                    <div class="usage-row">
-                        <span class="usage-label">출력 비용</span>
-                        <span class="usage-value">${output_cost:.6f}</span>
+                    <div class="cost-item">
+                        <span class="cost-label">입력 비용</span>
+                        <span class="cost-value">${ic:.6f}</span>
                     </div>
-                    <div class="usage-row">
-                        <span class="usage-label">합계</span>
-                        <span class="usage-value total">${total_cost:.6f}</span>
+                    <div class="cost-item">
+                        <span class="cost-label">출력 비용</span>
+                        <span class="cost-value">${oc:.6f}</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="cost-label">합계</span>
+                        <span class="cost-value">${tc:.6f}</span>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
 
-                # 메시지 저장 (사용량 정보 포함)
                 st.session_state.messages.append({
                     "role": "assistant",
-                    "content": assistant_text,
+                    "content": text,
                     "usage": {
-                        "input_tokens": input_tokens,
-                        "output_tokens": output_tokens,
-                        "input_cost": input_cost,
-                        "output_cost": output_cost,
-                        "total_cost": total_cost,
+                        "input_tokens": inp,
+                        "output_tokens": out,
+                        "input_cost": ic,
+                        "output_cost": oc,
+                        "total_cost": tc,
+                        "elapsed": elapsed,
+                        "model_name": selected_model_name,
+                        "model_emoji": mi["emoji"],
                     }
                 })
 
@@ -487,6 +832,17 @@ if prompt := st.chat_input("💬 질문을 입력하세요..."):
             except anthropic.RateLimitError:
                 st.error("⏳ API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.")
             except anthropic.APIError as e:
-                st.error(f"❌ API 오류가 발생했습니다: {str(e)}")
+                st.error(f"❌ API 오류: {str(e)}")
             except Exception as e:
                 st.error(f"❌ 예상치 못한 오류: {str(e)}")
+
+# ============================================================
+# 푸터
+# ============================================================
+st.markdown("""
+<div class="app-footer">
+    ✦ Claude AI Studio · 당곡고등학교 학습 도우미<br>
+    Built with <a href="https://streamlit.io" target="_blank">Streamlit</a> + 
+    <a href="https://anthropic.com" target="_blank">Anthropic Claude API</a>
+</div>
+""", unsafe_allow_html=True)
