@@ -1,94 +1,107 @@
 import streamlit as st
 import anthropic
 import time
+import json
+from datetime import datetime
 
-# ============================================================
+# =============================================================
 # 페이지 설정
-# ============================================================
+# =============================================================
 st.set_page_config(
     page_title="Claude AI Studio",
     page_icon="✦",
     layout="centered",
 )
 
-# ============================================================
-# 프리미엄 CSS 디자인
-# ============================================================
+# =============================================================
+# 프리미엄 CSS
+# =============================================================
 st.markdown("""
 <style>
-/* ── Google Fonts ── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* ── Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-/* ── 전역 리셋 ── */
 * { font-family: 'Inter', sans-serif; }
-code, .stCode { font-family: 'JetBrains Mono', monospace !important; }
+code, pre, .stCode { font-family: 'JetBrains Mono', monospace !important; }
 
-/* ── 배경 애니메이션 ── */
+/* ── Animated Background ── */
 .stApp {
     background: #050510;
     background-image:
-        radial-gradient(ellipse 80% 60% at 20% 0%, rgba(88, 28, 255, 0.15) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 80% 100%, rgba(0, 200, 255, 0.10) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 60%);
+        radial-gradient(ellipse 80% 50% at 10% -10%, rgba(124,58,237,0.18) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 45% at 90% 100%, rgba(6,182,212,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 30% at 50% 50%, rgba(168,85,247,0.06) 0%, transparent 50%);
+    min-height: 100vh;
 }
 
-/* ── 스크롤바 ── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #7c3aed, #2563eb);
-    border-radius: 3px;
+    background: linear-gradient(180deg, #7c3aed, #06b6d4);
+    border-radius: 10px;
 }
 
-/* ── 히어로 헤더 ── */
+/* ── Hero ── */
 .hero {
     text-align: center;
-    padding: 2.5rem 1rem 1.5rem;
+    padding: 2rem 1rem 0.5rem;
     position: relative;
+}
+@keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
 }
 .hero-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(37,99,235,0.2));
-    border: 1px solid rgba(124,58,237,0.3);
-    padding: 0.35rem 1rem;
+    background: linear-gradient(90deg,
+        rgba(124,58,237,0.15) 0%,
+        rgba(6,182,212,0.25) 50%,
+        rgba(124,58,237,0.15) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
+    border: 1px solid rgba(124,58,237,0.25);
+    padding: 0.4rem 1.2rem;
     border-radius: 50px;
-    font-size: 0.75rem;
-    color: #a78bfa;
-    font-weight: 600;
-    letter-spacing: 0.05em;
+    font-size: 0.72rem;
+    color: #a5b4fc;
+    font-weight: 700;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    margin-bottom: 1rem;
+    margin-bottom: 0.8rem;
 }
 .hero h1 {
-    font-size: 2.8rem;
+    font-size: 3rem;
     font-weight: 900;
-    background: linear-gradient(135deg, #ffffff 0%, #a78bfa 50%, #60a5fa 100%);
+    background: linear-gradient(135deg, #fff 0%, #c4b5fd 40%, #67e8f9 80%, #fff 100%);
+    background-size: 300% 300%;
+    animation: shimmer 4s ease-in-out infinite;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin: 0.5rem 0;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
+    margin: 0.4rem 0;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
 }
 .hero .subtitle {
-    color: #64648a;
-    font-size: 1rem;
+    color: #525280;
+    font-size: 0.95rem;
     font-weight: 400;
-    max-width: 500px;
-    margin: 0.5rem auto 0;
-    line-height: 1.6;
+    max-width: 520px;
+    margin: 0.6rem auto 0;
+    line-height: 1.7;
 }
 
-/* ── 글래스 카드 ── */
+/* ── Glass Card Base ── */
 .glass {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255,255,255,0.025);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,0.05);
     border-radius: 16px;
-    padding: 1.5rem;
+    padding: 1.4rem;
     margin: 0.8rem 0;
     position: relative;
     overflow: hidden;
@@ -96,409 +109,525 @@ code, .stCode { font-family: 'JetBrains Mono', monospace !important; }
 .glass::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    inset: 0;
+    border-radius: 16px;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent 50%, rgba(255,255,255,0.04));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
 }
 
-/* ── 사용량 카드 ── */
-.usage-glass {
-    background: rgba(124, 58, 237, 0.06);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(124, 58, 237, 0.15);
-    border-radius: 16px;
-    padding: 1.4rem;
-    margin: 1rem 0;
+/* ── Preset Chips ── */
+.preset-section { margin: 0.8rem 0; }
+.preset-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
 }
-.usage-glass .card-header {
+.preset-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    cursor: default;
+    transition: all 0.2s;
+}
+.preset-chip.active {
+    background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(6,182,212,0.15));
+    border-color: rgba(124,58,237,0.4);
+    color: #c4b5fd;
+    font-weight: 600;
+}
+
+/* ── Model Selector Cards ── */
+.model-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin: 0.6rem 0;
+}
+.model-option {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 0.7rem;
+    text-align: center;
+    transition: all 0.2s;
+}
+.model-option.selected {
+    border-color: rgba(124,58,237,0.5);
+    background: rgba(124,58,237,0.08);
+    box-shadow: 0 0 20px rgba(124,58,237,0.1);
+}
+.model-option .mo-emoji { font-size: 1.2rem; }
+.model-option .mo-name {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #c4b5fd;
+    margin-top: 0.2rem;
+}
+.model-option .mo-tag {
+    font-size: 0.6rem;
+    color: #525280;
+    margin-top: 0.1rem;
+}
+
+/* ── Parameter Display ── */
+.param-display {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+}
+.param-pill {
+    flex: 1;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 0.45rem;
+    text-align: center;
+}
+.param-pill .pp-val {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #e2e8f0;
+    font-family: 'JetBrains Mono', monospace;
+}
+.param-pill .pp-label {
+    font-size: 0.6rem;
+    color: #525280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ── Usage Card ── */
+.usage-glass {
+    background: rgba(124,58,237,0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(124,58,237,0.12);
+    border-radius: 16px;
+    padding: 1.3rem;
+    margin: 1rem 0 0.5rem;
+}
+.card-header {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     margin-bottom: 1rem;
 }
-.usage-glass .card-header .icon {
-    width: 32px; height: 32px;
-    background: linear-gradient(135deg, #7c3aed, #2563eb);
+.card-header .icon-box {
+    width: 30px; height: 30px;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
-}
-.usage-glass .card-header .title {
-    color: #c4b5fd;
     font-size: 0.85rem;
+}
+.icon-box.purple { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+.icon-box.green  { background: linear-gradient(135deg, #059669, #0d9488); }
+.icon-box.blue   { background: linear-gradient(135deg, #2563eb, #0ea5e9); }
+
+.card-header .card-title {
+    font-size: 0.78rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+    color: #a78bfa;
 }
 
-.metric-grid {
+.metric-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.6rem;
-}
-.metric-item {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.05);
-    border-radius: 10px;
-    padding: 0.8rem;
-    text-align: center;
-}
-.metric-item .value {
-    font-size: 1.2rem;
-    font-weight: 800;
-    color: #ffffff;
-    font-family: 'JetBrains Mono', monospace;
-}
-.metric-item .label {
-    font-size: 0.7rem;
-    color: #64648a;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-top: 0.2rem;
-}
-.metric-item.highlight {
-    background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(37,99,235,0.15));
-    border-color: rgba(124,58,237,0.3);
-}
-.metric-item.highlight .value {
-    background: linear-gradient(135deg, #a78bfa, #60a5fa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-/* ── 비용 카드 ── */
-.cost-glass {
-    background: rgba(16, 185, 129, 0.06);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(16, 185, 129, 0.15);
-    border-radius: 16px;
-    padding: 1.4rem;
-    margin: 0.5rem 0 1rem;
-}
-.cost-glass .card-header .icon {
-    background: linear-gradient(135deg, #059669, #0d9488);
-}
-.cost-glass .card-header .title {
-    color: #6ee7b7;
-}
-.cost-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-}
-.cost-item:last-child {
-    border-bottom: none;
-    padding-top: 0.7rem;
-    margin-top: 0.3rem;
-    border-top: 1px solid rgba(16,185,129,0.2);
-}
-.cost-item .cost-label {
-    color: #64648a;
-    font-size: 0.85rem;
-    font-weight: 500;
-}
-.cost-item .cost-value {
-    color: #e2e8f0;
-    font-size: 0.9rem;
-    font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
-}
-.cost-item:last-child .cost-value {
-    color: #6ee7b7;
-    font-size: 1rem;
-}
-
-/* ── 시간 배지 ── */
-.time-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    background: rgba(251, 191, 36, 0.1);
-    border: 1px solid rgba(251, 191, 36, 0.2);
-    padding: 0.25rem 0.7rem;
-    border-radius: 50px;
-    font-size: 0.75rem;
-    color: #fbbf24;
-    font-weight: 600;
-    margin-bottom: 0.8rem;
-}
-
-/* ── 사이드바 ── */
-section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0a0a1a 0%, #0d0d24 100%) !important;
-    border-right: 1px solid rgba(255,255,255,0.05);
-}
-section[data-testid="stSidebar"] .stMarkdown h1,
-section[data-testid="stSidebar"] .stMarkdown h2,
-section[data-testid="stSidebar"] .stMarkdown h3 {
-    color: #e2e8f0 !important;
-    font-weight: 700;
-}
-section[data-testid="stSidebar"] .stMarkdown p,
-section[data-testid="stSidebar"] .stMarkdown li {
-    color: #94a3b8 !important;
-}
-section[data-testid="stSidebar"] hr {
-    border-color: rgba(255,255,255,0.06) !important;
-}
-
-/* 사이드바 모델 카드 */
-.model-card {
-    background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(37,99,235,0.08));
-    border: 1px solid rgba(124,58,237,0.2);
-    border-radius: 12px;
-    padding: 1rem;
-    margin: 0.6rem 0;
-}
-.model-card .model-name {
-    color: #c4b5fd;
-    font-size: 0.9rem;
-    font-weight: 700;
-    margin-bottom: 0.3rem;
-}
-.model-card .model-desc {
-    color: #64648a;
-    font-size: 0.78rem;
-    line-height: 1.5;
-}
-.model-card .model-pricing {
-    display: flex;
     gap: 0.5rem;
-    margin-top: 0.6rem;
+    margin-bottom: 0.5rem;
 }
-.model-card .price-tag {
-    background: rgba(255,255,255,0.05);
-    border-radius: 6px;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.7rem;
-    color: #94a3b8;
-    font-family: 'JetBrains Mono', monospace;
-}
-
-/* 사이드바 스탯 */
-.stat-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.5rem;
-    margin: 0.5rem 0;
-}
-.stat-box {
-    flex: 1;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.06);
+.metric-box {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.04);
     border-radius: 10px;
     padding: 0.7rem;
     text-align: center;
 }
-.stat-box .stat-num {
-    font-size: 1.2rem;
+.metric-box .m-value {
+    font-size: 1.15rem;
     font-weight: 800;
+    color: #ffffff;
     font-family: 'JetBrains Mono', monospace;
-    color: #e2e8f0;
 }
-.stat-box .stat-label {
+.metric-box .m-label {
     font-size: 0.65rem;
-    color: #64648a;
+    color: #525280;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-top: 0.15rem;
 }
-.stat-box.purple .stat-num {
+.metric-box.full {
+    grid-column: span 2;
+    background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(6,182,212,0.08));
+    border-color: rgba(124,58,237,0.2);
+}
+.metric-box.full .m-value {
+    background: linear-gradient(135deg, #c4b5fd, #67e8f9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 1.3rem;
+}
+
+/* ── Progress Bar ── */
+.token-progress {
+    margin: 0.8rem 0 0.3rem;
+}
+.progress-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.3rem;
+}
+.progress-labels span {
+    font-size: 0.65rem;
+    color: #525280;
+    font-weight: 500;
+}
+.progress-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+.progress-bar-fill.input-bar {
+    background: linear-gradient(90deg, #7c3aed, #a78bfa);
+}
+.progress-bar-fill.output-bar {
+    background: linear-gradient(90deg, #06b6d4, #67e8f9);
+}
+
+/* ── Cost Card ── */
+.cost-glass {
+    background: rgba(16,185,129,0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(16,185,129,0.12);
+    border-radius: 16px;
+    padding: 1.3rem;
+    margin: 0.5rem 0 1rem;
+}
+.cost-glass .card-title { color: #6ee7b7; }
+.cost-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.cost-line:last-child {
+    border-bottom: none;
+    padding-top: 0.6rem;
+    margin-top: 0.2rem;
+    border-top: 1px solid rgba(16,185,129,0.15);
+}
+.cost-line .cl-label {
+    color: #525280;
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+.cost-line .cl-value {
+    color: #cbd5e1;
+    font-size: 0.88rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+}
+.cost-line:last-child .cl-value {
+    color: #6ee7b7;
+    font-size: 1rem;
+}
+
+/* ── Model & Time Badge ── */
+.badge-row {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.6rem;
+}
+.inline-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+.badge-model {
+    background: rgba(124,58,237,0.12);
+    border: 1px solid rgba(124,58,237,0.25);
+    color: #a78bfa;
+}
+.badge-time {
+    background: rgba(251,191,36,0.1);
+    border: 1px solid rgba(251,191,36,0.2);
+    color: #fbbf24;
+}
+.badge-tokens {
+    background: rgba(6,182,212,0.1);
+    border: 1px solid rgba(6,182,212,0.2);
+    color: #67e8f9;
+}
+
+/* ── Sidebar ── */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #08081a, #0a0a20) !important;
+    border-right: 1px solid rgba(255,255,255,0.04);
+}
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3 {
+    color: #e2e8f0 !important;
+    font-weight: 700;
+}
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] li,
+section[data-testid="stSidebar"] label {
+    color: #94a3b8 !important;
+}
+section[data-testid="stSidebar"] hr {
+    border-color: rgba(255,255,255,0.05) !important;
+}
+
+/* Sidebar Stats */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+    margin: 0.5rem 0;
+}
+.stat-card {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 0.65rem;
+    text-align: center;
+}
+.stat-card .sc-val {
+    font-size: 1.1rem;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+}
+.stat-card .sc-label {
+    font-size: 0.6rem;
+    color: #525280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.1rem;
+}
+.sc-val.v-purple {
     background: linear-gradient(135deg, #a78bfa, #c084fc);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
-.stat-box.blue .stat-num {
-    background: linear-gradient(135deg, #60a5fa, #38bdf8);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+.sc-val.v-cyan {
+    background: linear-gradient(135deg, #22d3ee, #67e8f9);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
-.stat-box.gold .stat-num {
+.sc-val.v-gold {
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.sc-val.v-green {
+    background: linear-gradient(135deg, #34d399, #6ee7b7);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
 
-/* ── 채팅 메시지 ── */
+/* Sidebar Model Card */
+.sb-model-card {
+    background: linear-gradient(135deg, rgba(124,58,237,0.06), rgba(6,182,212,0.04));
+    border: 1px solid rgba(124,58,237,0.15);
+    border-radius: 12px;
+    padding: 0.9rem;
+    margin: 0.5rem 0;
+}
+.sb-model-card .smc-name {
+    color: #c4b5fd;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+.sb-model-card .smc-desc {
+    color: #525280;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    margin-top: 0.2rem;
+}
+.sb-model-card .smc-prices {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+.sb-model-card .smc-price {
+    background: rgba(0,0,0,0.25);
+    border-radius: 6px;
+    padding: 0.2rem 0.45rem;
+    font-size: 0.65rem;
+    color: #94a3b8;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Chat ── */
 .stChatMessage {
-    background: rgba(255,255,255,0.02) !important;
-    border: 1px solid rgba(255,255,255,0.04) !important;
+    background: rgba(255,255,255,0.015) !important;
+    border: 1px solid rgba(255,255,255,0.035) !important;
     border-radius: 16px !important;
-    padding: 1rem !important;
-    margin-bottom: 1rem !important;
+    margin-bottom: 0.8rem !important;
 }
 
-/* ── 입력창 ── */
+/* ── Chat Input ── */
 .stChatInput > div {
-    border: 1px solid rgba(124,58,237,0.3) !important;
+    border: 1px solid rgba(124,58,237,0.2) !important;
     border-radius: 14px !important;
-    background: rgba(255,255,255,0.03) !important;
+    background: rgba(255,255,255,0.025) !important;
+    transition: all 0.3s ease !important;
 }
 .stChatInput > div:focus-within {
-    border-color: rgba(124,58,237,0.6) !important;
-    box-shadow: 0 0 20px rgba(124,58,237,0.15) !important;
+    border-color: rgba(124,58,237,0.5) !important;
+    box-shadow: 0 0 25px rgba(124,58,237,0.12), 0 0 50px rgba(124,58,237,0.05) !important;
 }
-.stChatInput textarea {
-    color: #e2e8f0 !important;
-}
+.stChatInput textarea { color: #e2e8f0 !important; }
 
-/* ── 라디오 버튼 ── */
-.stRadio > label {
-    color: #c4b5fd !important;
-    font-weight: 600 !important;
-    font-size: 0.85rem !important;
-}
-.stRadio > div > label {
-    color: #94a3b8 !important;
-}
-.stRadio > div > label[data-checked="true"] {
-    color: #e2e8f0 !important;
-}
-
-/* ── 텍스트 에리어 ── */
-.stTextArea textarea {
-    background: rgba(255,255,255,0.03) !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
-    border-radius: 10px !important;
-    color: #e2e8f0 !important;
-    font-size: 0.85rem !important;
-}
-.stTextArea textarea:focus {
-    border-color: rgba(124,58,237,0.4) !important;
-    box-shadow: 0 0 15px rgba(124,58,237,0.1) !important;
-}
-.stTextArea label {
-    color: #94a3b8 !important;
-}
-
-/* ── 슬라이더 ── */
-.stSlider label { color: #94a3b8 !important; }
-.stSlider [data-testid="stThumbValue"] { color: #c4b5fd !important; }
-
-/* ── 버튼 ── */
+/* ── Buttons ── */
 .stButton > button {
     background: linear-gradient(135deg, #7c3aed, #2563eb) !important;
     color: white !important;
     border: none !important;
     border-radius: 10px !important;
     font-weight: 700 !important;
-    font-size: 0.85rem !important;
-    padding: 0.6rem 1.2rem !important;
-    transition: all 0.3s ease !important;
+    font-size: 0.82rem !important;
+    padding: 0.55rem 1rem !important;
+    transition: all 0.25s ease !important;
     letter-spacing: 0.02em;
 }
 .stButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 30px rgba(124,58,237,0.3) !important;
+}
+.stButton > button:active { transform: translateY(0) !important; }
+.stDownloadButton > button {
+    background: linear-gradient(135deg, #059669, #0d9488) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    font-size: 0.8rem !important;
+    transition: all 0.25s ease !important;
+}
+.stDownloadButton > button:hover {
     transform: translateY(-1px) !important;
-    box-shadow: 0 8px 25px rgba(124,58,237,0.35) !important;
-}
-.stButton > button:active {
-    transform: translateY(0) !important;
+    box-shadow: 0 6px 20px rgba(5,150,105,0.3) !important;
 }
 
-/* ── 에러/경고 박스 ── */
-.stAlert {
-    background: rgba(255,255,255,0.03) !important;
-    border-radius: 12px !important;
+/* ── TextArea / Slider / Radio ── */
+.stTextArea textarea {
+    background: rgba(255,255,255,0.025) !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    border-radius: 10px !important;
+    color: #e2e8f0 !important;
+    font-size: 0.83rem !important;
+}
+.stTextArea textarea:focus {
+    border-color: rgba(124,58,237,0.35) !important;
+    box-shadow: 0 0 15px rgba(124,58,237,0.08) !important;
 }
 
-/* ── 푸터 ── */
-.app-footer {
-    text-align: center;
-    padding: 2rem 0 1rem;
-    color: #3a3a5a;
-    font-size: 0.75rem;
-    border-top: 1px solid rgba(255,255,255,0.04);
-    margin-top: 2rem;
-}
-.app-footer a {
-    color: #7c3aed;
-    text-decoration: none;
-}
-
-/* ── 안내 카드 (사이드바) ── */
-.guide-card {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.05);
-    border-radius: 10px;
-    padding: 0.8rem;
-    margin: 0.3rem 0;
-}
-.guide-card .step-num {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px; height: 20px;
-    background: linear-gradient(135deg, #7c3aed, #2563eb);
-    border-radius: 50%;
-    font-size: 0.65rem;
-    font-weight: 800;
-    color: white;
-    margin-right: 0.4rem;
-}
-.guide-card .step-text {
-    color: #94a3b8;
-    font-size: 0.8rem;
-}
-
-/* ── 스피너 ── */
-.stSpinner > div {
-    color: #a78bfa !important;
-}
-
-/* ── 빈 채팅 상태 ── */
+/* ── Empty State ── */
 .empty-state {
     text-align: center;
-    padding: 3rem 1rem;
-    color: #3a3a5a;
+    padding: 3.5rem 1rem;
+}
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
 }
 .empty-state .empty-icon {
-    font-size: 3rem;
+    font-size: 3.5rem;
+    display: inline-block;
+    animation: float 3s ease-in-out infinite;
     margin-bottom: 1rem;
-    opacity: 0.5;
 }
 .empty-state .empty-title {
-    font-size: 1.1rem;
-    font-weight: 600;
+    font-size: 1.15rem;
+    font-weight: 700;
     color: #64648a;
     margin-bottom: 0.5rem;
 }
 .empty-state .empty-desc {
-    font-size: 0.85rem;
-    color: #4a4a6a;
-    max-width: 350px;
+    font-size: 0.88rem;
+    color: #3a3a5a;
+    max-width: 400px;
     margin: 0 auto;
-    line-height: 1.6;
+    line-height: 1.7;
 }
-
-/* ── 모델 뱃지 (채팅) ── */
-.model-badge-inline {
+.empty-state .shortcut-hint {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    background: rgba(124,58,237,0.12);
-    border: 1px solid rgba(124,58,237,0.25);
-    border-radius: 6px;
-    padding: 0.15rem 0.5rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 0.35rem 0.8rem;
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    color: #525280;
+}
+.empty-state .shortcut-hint kbd {
+    background: rgba(255,255,255,0.08);
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
     font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
     color: #a78bfa;
-    font-weight: 600;
-    margin-bottom: 0.6rem;
+}
+
+/* ── Footer ── */
+.app-footer {
+    text-align: center;
+    padding: 2rem 0 1rem;
+    color: #2a2a4a;
+    font-size: 0.72rem;
+    border-top: 1px solid rgba(255,255,255,0.03);
+    margin-top: 3rem;
+}
+.app-footer a { color: #7c3aed; text-decoration: none; }
+.app-footer a:hover { text-decoration: underline; }
+
+/* ── Expander ── */
+.streamlit-expanderHeader {
+    background: rgba(255,255,255,0.02) !important;
+    border: 1px solid rgba(255,255,255,0.05) !important;
+    border-radius: 10px !important;
+    color: #94a3b8 !important;
+    font-size: 0.85rem !important;
+}
+
+/* ── Divider in sidebar ── */
+.sidebar-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(124,58,237,0.2), transparent);
+    margin: 1rem 0;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ============================================================
-# API 키 로드
-# ============================================================
+# =============================================================
+# API 키
+# =============================================================
 def get_api_key():
     try:
         return st.secrets["ANTHROPIC_API_KEY"]
@@ -507,71 +636,186 @@ def get_api_key():
 
 api_key = get_api_key()
 
-# ============================================================
-# 모델 정보
-# ============================================================
+# =============================================================
+# 모델 정의
+# =============================================================
 MODELS = {
+    "Claude 4 Opus": {
+        "id": "claude-opus-4-20250514",
+        "desc": "최고 성능 · 복잡한 추론 · 최상위 모델",
+        "input_cost": 15.00,
+        "output_cost": 75.00,
+        "emoji": "👑",
+        "tag": "MOST POWERFUL",
+        "color": "#f59e0b",
+    },
     "Claude 4 Sonnet": {
         "id": "claude-sonnet-4-20250514",
-        "description": "최신 모델 · 빠르고 정확한 응답",
-        "input_cost_per_1m": 3.00,
-        "output_cost_per_1m": 15.00,
-        "badge": "⚡ LATEST",
+        "desc": "빠르고 똑똑한 · 가성비 최고 · 최신 모델",
+        "input_cost": 3.00,
+        "output_cost": 15.00,
         "emoji": "⚡",
+        "tag": "RECOMMENDED",
+        "color": "#a78bfa",
     },
     "Claude 3.5 Sonnet": {
         "id": "claude-3-5-sonnet-20241022",
-        "description": "안정적 · 균형 잡힌 범용 모델",
-        "input_cost_per_1m": 3.00,
-        "output_cost_per_1m": 15.00,
-        "badge": "🎯 STABLE",
+        "desc": "안정적 · 검증된 범용 모델",
+        "input_cost": 3.00,
+        "output_cost": 15.00,
         "emoji": "🎯",
+        "tag": "STABLE",
+        "color": "#60a5fa",
+    },
+    "Claude 3.5 Haiku": {
+        "id": "claude-3-5-haiku-20241022",
+        "desc": "초고속 · 가벼운 작업에 최적 · 저렴",
+        "input_cost": 0.80,
+        "output_cost": 4.00,
+        "emoji": "🚀",
+        "tag": "FASTEST",
+        "color": "#34d399",
     },
 }
 
-# ============================================================
+# =============================================================
+# 프리셋
+# =============================================================
+PRESETS = {
+    "📚 학습 도우미": {
+        "prompt": "당신은 고등학생의 학습을 돕는 친절한 튜터입니다. 개념을 쉽게 설명하고, 단계별로 풀이를 안내하며, 학생이 스스로 이해할 수 있도록 도와주세요. 한국어로 답변합니다.",
+        "temp": 0.5,
+    },
+    "💻 코딩 전문가": {
+        "prompt": "당신은 프로그래밍 전문가입니다. 코드를 작성할 때는 주석을 꼼꼼히 달고, 왜 그렇게 작성했는지 설명해주세요. 에러가 있으면 원인과 해결법을 친절히 알려주세요. 한국어로 답변합니다.",
+        "temp": 0.3,
+    },
+    "🌍 영어 선생님": {
+        "prompt": "당신은 한국 고등학생을 위한 영어 선생님입니다. 문법, 어휘, 독해, 작문을 도와주세요. 영어 표현을 설명할 때는 예문과 함께 한국어로 설명합니다.",
+        "temp": 0.5,
+    },
+    "🔢 수학 튜터": {
+        "prompt": "당신은 수학 전문 튜터입니다. 문제를 단계별로 풀어주고, 각 단계의 이유를 설명해주세요. 공식을 사용할 때는 왜 그 공식을 쓰는지도 알려주세요. 한국어로 답변합니다.",
+        "temp": 0.2,
+    },
+    "✨ 자유 모드": {
+        "prompt": "당신은 도움이 되는 AI 어시스턴트입니다. 한국어로 답변합니다.",
+        "temp": 0.7,
+    },
+}
+
+# =============================================================
 # 세션 상태
-# ============================================================
+# =============================================================
 defaults = {
     "messages": [],
     "total_input_tokens": 0,
     "total_output_tokens": 0,
     "total_cost": 0.0,
     "conversation_count": 0,
+    "selected_preset": "📚 학습 도우미",
 }
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-# ============================================================
-# 사이드바
-# ============================================================
-with st.sidebar:
-    st.markdown("## ✦ Studio Settings")
+# =============================================================
+# 대화 내보내기 함수
+# =============================================================
+def export_markdown():
+    lines = [f"# Claude AI Studio — 대화 기록\n"]
+    lines.append(f"- 내보내기 시각: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+    lines.append(f"- 총 대화: {st.session_state.conversation_count}회\n")
+    lines.append(f"- 총 토큰: {st.session_state.total_input_tokens + st.session_state.total_output_tokens:,}\n")
+    lines.append(f"- 총 비용: ${st.session_state.total_cost:.6f}\n\n---\n")
+    for msg in st.session_state.messages:
+        role = "🧑 사용자" if msg["role"] == "user" else "🤖 Claude"
+        lines.append(f"\n### {role}\n\n{msg['content']}\n")
+        if msg["role"] == "assistant" and "usage" in msg:
+            u = msg["usage"]
+            lines.append(f"\n> 📊 입력 {u['input_tokens']:,} + 출력 {u['output_tokens']:,} = {u['input_tokens']+u['output_tokens']:,} 토큰 · ${u['total_cost']:.6f}\n")
+    return "\n".join(lines)
 
-    # 모델 선택
+def export_json():
+    data = {
+        "exported_at": datetime.now().isoformat(),
+        "stats": {
+            "conversations": st.session_state.conversation_count,
+            "total_input_tokens": st.session_state.total_input_tokens,
+            "total_output_tokens": st.session_state.total_output_tokens,
+            "total_cost": st.session_state.total_cost,
+        },
+        "messages": st.session_state.messages,
+    }
+    return json.dumps(data, ensure_ascii=False, indent=2)
+
+# =============================================================
+# 사이드바
+# =============================================================
+with st.sidebar:
+    st.markdown("## ✦ Studio")
+
+    # ── 모델 선택 ──
+    st.markdown("#### 🧠 Model")
     selected_model_name = st.radio(
-        "🧠 Model",
+        "모델 선택",
         options=list(MODELS.keys()),
-        index=0,
+        index=1,
+        label_visibility="collapsed",
     )
     mi = MODELS[selected_model_name]
 
     st.markdown(f"""
-    <div class="model-card">
-        <div class="model-name">{mi['emoji']} {selected_model_name}</div>
-        <div class="model-desc">{mi['description']}</div>
-        <div class="model-pricing">
-            <span class="price-tag">IN ${mi['input_cost_per_1m']:.0f}/1M</span>
-            <span class="price-tag">OUT ${mi['output_cost_per_1m']:.0f}/1M</span>
+    <div class="sb-model-card">
+        <div class="smc-name">{mi['emoji']} {selected_model_name}
+            <span style="font-size:0.6rem; background:rgba(255,255,255,0.06); padding:0.1rem 0.4rem;
+                border-radius:4px; margin-left:0.3rem; color:{mi['color']}">{mi['tag']}</span>
+        </div>
+        <div class="smc-desc">{mi['desc']}</div>
+        <div class="smc-prices">
+            <span class="smc-price">IN ${mi['input_cost']:.2f}/1M</span>
+            <span class="smc-price">OUT ${mi['output_cost']:.2f}/1M</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
+    # ── 프리셋 ──
+    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+    st.markdown("#### 📌 Preset")
+    preset_choice = st.radio(
+        "프리셋 선택",
+        options=list(PRESETS.keys()),
+        index=list(PRESETS.keys()).index(st.session_state.selected_preset),
+        label_visibility="collapsed",
+    )
+    st.session_state.selected_preset = preset_choice
+    preset = PRESETS[preset_choice]
+
+    # ── 파라미터 ──
+    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+    st.markdown("#### 🎛️ Parameters")
+
     system_prompt = st.text_area(
-        "📝 System Prompt",
-        value="당신은 친절하고 도움이 되는 AI 어시스턴트입니다. 한국어로 답변해주세요.",
+        "System Prompt",
+        value=preset["prompt"],
         height=100,
+    )
+
+    temperature = st.slider(
+        "🌡️ Temperature",
+        min_value=0.0,
+        max_value=1.0,
+        value=preset["temp"],
+        step=0.05,
+        help="낮을수록 정확하고, 높을수록 창의적",
+    )
+
+    top_p = st.slider(
+        "🎲 Top-P",
+        min_value=0.0,
+        max_value=1.0,
+        value=0.95,
+        step=0.05,
     )
 
     max_tokens = st.slider(
@@ -582,60 +826,101 @@ with st.sidebar:
         step=256,
     )
 
-    st.markdown("---")
-    st.markdown("### 📊 Session Stats")
-
     st.markdown(f"""
-    <div class="stat-row">
-        <div class="stat-box purple">
-            <div class="stat-num">{st.session_state.conversation_count}</div>
-            <div class="stat-label">대화</div>
+    <div class="param-display">
+        <div class="param-pill">
+            <div class="pp-val">{temperature}</div>
+            <div class="pp-label">Temp</div>
         </div>
-        <div class="stat-box blue">
-            <div class="stat-num">{st.session_state.total_input_tokens + st.session_state.total_output_tokens:,}</div>
-            <div class="stat-label">토큰</div>
+        <div class="param-pill">
+            <div class="pp-val">{top_p}</div>
+            <div class="pp-label">Top-P</div>
         </div>
-    </div>
-    <div class="stat-row">
-        <div class="stat-box gold">
-            <div class="stat-num">${st.session_state.total_cost:.4f}</div>
-            <div class="stat-label">예상 비용</div>
+        <div class="param-pill">
+            <div class="pp-val">{max_tokens}</div>
+            <div class="pp-label">Max Tok</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("")
+    # ── 통계 ──
+    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+    st.markdown("#### 📊 Session Stats")
 
-    if st.button("🗑️ 대화 초기화", use_container_width=True):
+    total_tok = st.session_state.total_input_tokens + st.session_state.total_output_tokens
+    st.markdown(f"""
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="sc-val v-purple">{st.session_state.conversation_count}</div>
+            <div class="sc-label">대화</div>
+        </div>
+        <div class="stat-card">
+            <div class="sc-val v-cyan">{total_tok:,}</div>
+            <div class="sc-label">총 토큰</div>
+        </div>
+        <div class="stat-card">
+            <div class="sc-val v-gold">{st.session_state.total_input_tokens:,}</div>
+            <div class="sc-label">입력 토큰</div>
+        </div>
+        <div class="stat-card">
+            <div class="sc-val v-green">{st.session_state.total_output_tokens:,}</div>
+            <div class="sc-label">출력 토큰</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 비용
+    st.markdown(f"""
+    <div style="text-align:center; margin:0.6rem 0;">
+        <div style="font-size:0.65rem; color:#525280; text-transform:uppercase; letter-spacing:0.08em;">
+            총 예상 비용
+        </div>
+        <div style="font-size:1.4rem; font-weight:900; font-family:'JetBrains Mono',monospace;
+            background:linear-gradient(135deg,#fbbf24,#f59e0b);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;">
+            ${st.session_state.total_cost:.4f}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── 내보내기 / 초기화 ──
+    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+    st.markdown("#### 📥 Export & Reset")
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.session_state.messages:
+            st.download_button(
+                "📄 MD",
+                data=export_markdown(),
+                file_name=f"claude_chat_{datetime.now().strftime('%Y%m%d_%H%M')}.md",
+                mime="text/markdown",
+                use_container_width=True,
+            )
+    with col_b:
+        if st.session_state.messages:
+            st.download_button(
+                "📋 JSON",
+                data=export_json(),
+                file_name=f"claude_chat_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
+                mime="application/json",
+                use_container_width=True,
+            )
+
+    st.markdown("")
+    if st.button("🗑️ 전체 초기화", use_container_width=True):
         for k, v in defaults.items():
             st.session_state[k] = v
         st.rerun()
 
-    st.markdown("---")
-    st.markdown("### 📖 How to Use")
-    st.markdown("""
-    <div class="guide-card">
-        <span class="step-num">1</span>
-        <span class="step-text">모델을 선택합니다</span>
-    </div>
-    <div class="guide-card">
-        <span class="step-num">2</span>
-        <span class="step-text">하단 입력창에 질문을 작성합니다</span>
-    </div>
-    <div class="guide-card">
-        <span class="step-num">3</span>
-        <span class="step-text">AI 응답과 사용량을 확인합니다</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ============================================================
-# 메인 히어로
-# ============================================================
-st.markdown("""
+# =============================================================
+# 히어로
+# =============================================================
+st.markdown(f"""
 <div class="hero">
-    <div class="hero-badge">✦ Powered by Anthropic Claude API</div>
+    <div class="hero-badge">✦ ULTIMATE EDITION · {mi['emoji']} {selected_model_name}</div>
     <h1>Claude AI Studio</h1>
-    <p class="subtitle">당곡고등학교 학습 도우미 — 질문을 입력하면 AI가 답변해드립니다</p>
+    <p class="subtitle">당곡고등학교 학습 도우미 — 스트리밍 응답 · 토큰 분석 · 대화 내보내기</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -644,31 +929,34 @@ if not api_key:
     st.error("""
     ⚠️ **API 키가 설정되지 않았습니다!**
 
-    **Streamlit Cloud:** 앱 Settings → Secrets에 아래 내용 추가
+    **Streamlit Cloud:** Settings → Secrets
     ```
     ANTHROPIC_API_KEY = "sk-ant-api03-..."
     ```
-
-    **로컬 테스트:** `.streamlit/secrets.toml` 파일에 동일하게 추가
+    **로컬:** `.streamlit/secrets.toml`에 동일하게 추가
     """)
     st.stop()
 
-# ============================================================
+# =============================================================
 # Claude 클라이언트
-# ============================================================
+# =============================================================
 client = anthropic.Anthropic(api_key=api_key)
 
-# ============================================================
-# 이전 메시지 표시
-# ============================================================
+# =============================================================
+# 이전 메시지
+# =============================================================
 if not st.session_state.messages:
-    st.markdown("""
+    st.markdown(f"""
     <div class="empty-state">
         <div class="empty-icon">✦</div>
         <div class="empty-title">대화를 시작해보세요</div>
         <div class="empty-desc">
-            아래 입력창에 궁금한 것을 물어보세요.
-            Claude AI가 친절하게 답변해드립니다.
+            현재 <strong style="color:#c4b5fd">{selected_model_name}</strong>
+            모델이 선택되어 있고,
+            <strong style="color:#c4b5fd">{preset_choice}</strong> 모드로 설정되어 있습니다.
+        </div>
+        <div class="shortcut-hint">
+            <kbd>Enter</kbd> 키로 메시지를 전송하세요
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -679,170 +967,252 @@ for msg in st.session_state.messages:
 
         if msg["role"] == "assistant" and "usage" in msg:
             u = msg["usage"]
+            total_t = u['input_tokens'] + u['output_tokens']
+            max_display = max(u['input_tokens'], u['output_tokens'], 1)
+            inp_pct = min((u['input_tokens'] / max_display) * 100, 100)
+            out_pct = min((u['output_tokens'] / max_display) * 100, 100)
+
             st.markdown(f"""
-            <span class="model-badge-inline">{u.get('model_emoji','')} {u.get('model_name','')}</span>
-            <span class="time-badge">⏱ {u.get('elapsed', 0):.1f}s</span>
+            <div class="badge-row">
+                <span class="inline-badge badge-model">{u.get('model_emoji','')} {u.get('model_name','')}</span>
+                <span class="inline-badge badge-time">⏱ {u.get('elapsed',0):.1f}s</span>
+                <span class="inline-badge badge-tokens">◈ {total_t:,} tokens</span>
+            </div>
 
             <div class="usage-glass">
                 <div class="card-header">
-                    <div class="icon">📊</div>
-                    <div class="title">Token Usage</div>
+                    <div class="icon-box purple">📊</div>
+                    <div class="card-title">Token Usage</div>
                 </div>
-                <div class="metric-grid">
-                    <div class="metric-item">
-                        <div class="value">{u['input_tokens']:,}</div>
-                        <div class="label">입력 토큰</div>
+                <div class="metric-row">
+                    <div class="metric-box">
+                        <div class="m-value">{u['input_tokens']:,}</div>
+                        <div class="m-label">📥 Input</div>
                     </div>
-                    <div class="metric-item">
-                        <div class="value">{u['output_tokens']:,}</div>
-                        <div class="label">출력 토큰</div>
+                    <div class="metric-box">
+                        <div class="m-value">{u['output_tokens']:,}</div>
+                        <div class="m-label">📤 Output</div>
                     </div>
-                    <div class="metric-item highlight" style="grid-column: span 2;">
-                        <div class="value">{u['input_tokens'] + u['output_tokens']:,}</div>
-                        <div class="label">총 사용 토큰</div>
+                </div>
+                <div class="metric-row">
+                    <div class="metric-box full">
+                        <div class="m-value">{total_t:,}</div>
+                        <div class="m-label">Total Tokens</div>
+                    </div>
+                </div>
+                <div class="token-progress">
+                    <div class="progress-labels">
+                        <span>Input</span>
+                        <span>{u['input_tokens']:,}</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill input-bar" style="width:{inp_pct}%"></div>
+                    </div>
+                </div>
+                <div class="token-progress">
+                    <div class="progress-labels">
+                        <span>Output</span>
+                        <span>{u['output_tokens']:,}</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill output-bar" style="width:{out_pct}%"></div>
                     </div>
                 </div>
             </div>
 
             <div class="cost-glass">
                 <div class="card-header">
-                    <div class="icon">💰</div>
-                    <div class="title">Estimated Cost</div>
+                    <div class="icon-box green">💰</div>
+                    <div class="card-title" style="color:#6ee7b7">Estimated Cost</div>
                 </div>
-                <div class="cost-item">
-                    <span class="cost-label">입력 비용</span>
-                    <span class="cost-value">${u['input_cost']:.6f}</span>
+                <div class="cost-line">
+                    <span class="cl-label">입력 비용</span>
+                    <span class="cl-value">${u['input_cost']:.6f}</span>
                 </div>
-                <div class="cost-item">
-                    <span class="cost-label">출력 비용</span>
-                    <span class="cost-value">${u['output_cost']:.6f}</span>
+                <div class="cost-line">
+                    <span class="cl-label">출력 비용</span>
+                    <span class="cl-value">${u['output_cost']:.6f}</span>
                 </div>
-                <div class="cost-item">
-                    <span class="cost-label">합계</span>
-                    <span class="cost-value">${u['total_cost']:.6f}</span>
+                <div class="cost-line">
+                    <span class="cl-label">합계</span>
+                    <span class="cl-value">${u['total_cost']:.6f}</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-# ============================================================
-# 입력 처리
-# ============================================================
+# =============================================================
+# 사용자 입력 & 스트리밍 응답
+# =============================================================
 if prompt := st.chat_input("✦ 질문을 입력하세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner(f"✦ {selected_model_name} 응답 생성 중..."):
-            try:
-                start_time = time.time()
+        try:
+            start_time = time.time()
 
-                api_messages = [
-                    {"role": m["role"], "content": m["content"]}
-                    for m in st.session_state.messages
-                    if m["role"] in ("user", "assistant")
-                ]
+            api_messages = [
+                {"role": m["role"], "content": m["content"]}
+                for m in st.session_state.messages
+                if m["role"] in ("user", "assistant")
+            ]
 
-                response = client.messages.create(
-                    model=mi["id"],
-                    max_tokens=max_tokens,
-                    system=system_prompt,
-                    messages=api_messages,
-                )
+            # 스트리밍 응답
+            collected_text = ""
+            input_tokens = 0
+            output_tokens = 0
+            text_placeholder = st.empty()
+            status_placeholder = st.empty()
 
-                elapsed = time.time() - start_time
-                text = response.content[0].text
-                inp = response.usage.input_tokens
-                out = response.usage.output_tokens
-                ic = (inp / 1_000_000) * mi["input_cost_per_1m"]
-                oc = (out / 1_000_000) * mi["output_cost_per_1m"]
-                tc = ic + oc
+            status_placeholder.markdown(f"*✦ {selected_model_name} 응답 생성 중...*")
 
-                st.session_state.total_input_tokens += inp
-                st.session_state.total_output_tokens += out
-                st.session_state.total_cost += tc
-                st.session_state.conversation_count += 1
+            with client.messages.stream(
+                model=mi["id"],
+                max_tokens=max_tokens,
+                system=system_prompt,
+                temperature=temperature,
+                top_p=top_p,
+                messages=api_messages,
+            ) as stream:
+                for event in stream:
+                    if hasattr(event, 'type'):
+                        if event.type == 'content_block_delta':
+                            if hasattr(event.delta, 'text'):
+                                collected_text += event.delta.text
+                                text_placeholder.markdown(collected_text + "▌")
+                        elif event.type == 'message_start':
+                            if hasattr(event.message, 'usage'):
+                                input_tokens = event.message.usage.input_tokens
+                        elif event.type == 'message_delta':
+                            if hasattr(event.usage, 'output_tokens'):
+                                output_tokens = event.usage.output_tokens
 
-                # 응답 표시
-                st.markdown(text)
+            # 스트리밍 완료
+            text_placeholder.markdown(collected_text)
+            status_placeholder.empty()
 
-                st.markdown(f"""
-                <span class="model-badge-inline">{mi['emoji']} {selected_model_name}</span>
-                <span class="time-badge">⏱ {elapsed:.1f}s</span>
+            elapsed = time.time() - start_time
 
-                <div class="usage-glass">
-                    <div class="card-header">
-                        <div class="icon">📊</div>
-                        <div class="title">Token Usage</div>
+            # 비용 계산
+            ic = (input_tokens / 1_000_000) * mi["input_cost"]
+            oc = (output_tokens / 1_000_000) * mi["output_cost"]
+            tc = ic + oc
+            total_t = input_tokens + output_tokens
+
+            # 세션 누적
+            st.session_state.total_input_tokens += input_tokens
+            st.session_state.total_output_tokens += output_tokens
+            st.session_state.total_cost += tc
+            st.session_state.conversation_count += 1
+
+            # 프로그레스 바 비율
+            max_display = max(input_tokens, output_tokens, 1)
+            inp_pct = min((input_tokens / max_display) * 100, 100)
+            out_pct = min((output_tokens / max_display) * 100, 100)
+
+            # 사용량 표시
+            st.markdown(f"""
+            <div class="badge-row">
+                <span class="inline-badge badge-model">{mi['emoji']} {selected_model_name}</span>
+                <span class="inline-badge badge-time">⏱ {elapsed:.1f}s</span>
+                <span class="inline-badge badge-tokens">◈ {total_t:,} tokens</span>
+            </div>
+
+            <div class="usage-glass">
+                <div class="card-header">
+                    <div class="icon-box purple">📊</div>
+                    <div class="card-title">Token Usage</div>
+                </div>
+                <div class="metric-row">
+                    <div class="metric-box">
+                        <div class="m-value">{input_tokens:,}</div>
+                        <div class="m-label">📥 Input</div>
                     </div>
-                    <div class="metric-grid">
-                        <div class="metric-item">
-                            <div class="value">{inp:,}</div>
-                            <div class="label">입력 토큰</div>
-                        </div>
-                        <div class="metric-item">
-                            <div class="value">{out:,}</div>
-                            <div class="label">출력 토큰</div>
-                        </div>
-                        <div class="metric-item highlight" style="grid-column: span 2;">
-                            <div class="value">{inp + out:,}</div>
-                            <div class="label">총 사용 토큰</div>
-                        </div>
+                    <div class="metric-box">
+                        <div class="m-value">{output_tokens:,}</div>
+                        <div class="m-label">📤 Output</div>
                     </div>
                 </div>
-
-                <div class="cost-glass">
-                    <div class="card-header">
-                        <div class="icon">💰</div>
-                        <div class="title">Estimated Cost</div>
-                    </div>
-                    <div class="cost-item">
-                        <span class="cost-label">입력 비용</span>
-                        <span class="cost-value">${ic:.6f}</span>
-                    </div>
-                    <div class="cost-item">
-                        <span class="cost-label">출력 비용</span>
-                        <span class="cost-value">${oc:.6f}</span>
-                    </div>
-                    <div class="cost-item">
-                        <span class="cost-label">합계</span>
-                        <span class="cost-value">${tc:.6f}</span>
+                <div class="metric-row">
+                    <div class="metric-box full">
+                        <div class="m-value">{total_t:,}</div>
+                        <div class="m-label">Total Tokens</div>
                     </div>
                 </div>
-                """, unsafe_allow_html=True)
+                <div class="token-progress">
+                    <div class="progress-labels">
+                        <span>Input</span>
+                        <span>{input_tokens:,}</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill input-bar" style="width:{inp_pct}%"></div>
+                    </div>
+                </div>
+                <div class="token-progress">
+                    <div class="progress-labels">
+                        <span>Output</span>
+                        <span>{output_tokens:,}</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill output-bar" style="width:{out_pct}%"></div>
+                    </div>
+                </div>
+            </div>
 
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": text,
-                    "usage": {
-                        "input_tokens": inp,
-                        "output_tokens": out,
-                        "input_cost": ic,
-                        "output_cost": oc,
-                        "total_cost": tc,
-                        "elapsed": elapsed,
-                        "model_name": selected_model_name,
-                        "model_emoji": mi["emoji"],
-                    }
-                })
+            <div class="cost-glass">
+                <div class="card-header">
+                    <div class="icon-box green">💰</div>
+                    <div class="card-title" style="color:#6ee7b7">Estimated Cost</div>
+                </div>
+                <div class="cost-line">
+                    <span class="cl-label">입력 비용</span>
+                    <span class="cl-value">${ic:.6f}</span>
+                </div>
+                <div class="cost-line">
+                    <span class="cl-label">출력 비용</span>
+                    <span class="cl-value">${oc:.6f}</span>
+                </div>
+                <div class="cost-line">
+                    <span class="cl-label">합계</span>
+                    <span class="cl-value">${tc:.6f}</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
-            except anthropic.AuthenticationError:
-                st.error("🔑 API 키가 유효하지 않습니다. Secrets 설정을 확인해주세요.")
-            except anthropic.RateLimitError:
-                st.error("⏳ API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.")
-            except anthropic.APIError as e:
-                st.error(f"❌ API 오류: {str(e)}")
-            except Exception as e:
-                st.error(f"❌ 예상치 못한 오류: {str(e)}")
+            # 메시지 저장
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": collected_text,
+                "usage": {
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                    "input_cost": ic,
+                    "output_cost": oc,
+                    "total_cost": tc,
+                    "elapsed": elapsed,
+                    "model_name": selected_model_name,
+                    "model_emoji": mi["emoji"],
+                }
+            })
 
-# ============================================================
+        except anthropic.AuthenticationError:
+            st.error("🔑 API 키가 유효하지 않습니다. Secrets 설정을 확인해주세요.")
+        except anthropic.RateLimitError:
+            st.error("⏳ 요청 한도 초과. 잠시 후 다시 시도해주세요.")
+        except anthropic.APIError as e:
+            st.error(f"❌ API 오류: {str(e)}")
+        except Exception as e:
+            st.error(f"❌ 오류: {str(e)}")
+
+# =============================================================
 # 푸터
-# ============================================================
+# =============================================================
 st.markdown("""
 <div class="app-footer">
-    ✦ Claude AI Studio · 당곡고등학교 학습 도우미<br>
-    Built with <a href="https://streamlit.io" target="_blank">Streamlit</a> + 
-    <a href="https://anthropic.com" target="_blank">Anthropic Claude API</a>
+    ✦ Claude AI Studio · Ultimate Edition<br>
+    당곡고등학교 학습 도우미<br><br>
+    Built with <a href="https://streamlit.io">Streamlit</a> ·
+    <a href="https://anthropic.com">Anthropic Claude API</a>
 </div>
 """, unsafe_allow_html=True)
